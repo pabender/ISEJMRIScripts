@@ -251,7 +251,9 @@ class ProtoThrottleHeartBeat(jmri.jmrit.automat.AbstractAutomaton):
       try:
          self.Xbee.setReceiveTimeout(2000)
          self.Xbee.sendBroadcastData(txBuffer)
+         print 'status message sent'
       except:
+         print 'failed to send heartbeat'
          pass
       return
    
