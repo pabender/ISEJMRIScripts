@@ -27,6 +27,7 @@ import java
 import java.util
 import jarray
 import jmri
+from datetime import datetime, timedelta
 import com.digi.xbee
 
 # The packet class handles translation of data from the received packet data.
@@ -218,13 +219,17 @@ class ProtoThrottleHeartBeat(jmri.jmrit.automat.AbstractAutomaton):
 
    def __init__(self,xbee,mrbus_dev_addr) :
       self.mrbus_dev_addr = mrbus_dev_addr
-      self.Xbee = xbee 
+      self.Xbee = xbee
+      self.lastStatusTime = datetime.now()
+      self.statusInterval = 1
    
    def init(self) :
       return
    
    def handle(self) :
-      self.sendStatus()
+      if datetime.now() > self.lastStatusTime + timedelta(0, self.statusInterval):
+         self.sendStatus()
+         self.lastStatusTime = datetime.now()
       return 1
    
    def sendStatus(self):
@@ -249,12 +254,10 @@ class ProtoThrottleHeartBeat(jmri.jmrit.automat.AbstractAutomaton):
       txBuffer[3] = java.lang.Byte(0xFF & crc).byteValue()
       txBuffer[4] = java.lang.Byte(0xFF & (crc >> 8)).byteValue()
       try:
-         self.Xbee.setReceiveTimeout(2000)
          self.Xbee.sendBroadcastData(txBuffer)
          # print 'status message sent'
       except:
-         print 'failed to send heartbeat'
-         pass
+         print 'failed to send status'
       return
    
    def mrbusCRC16Calculate(self,data):

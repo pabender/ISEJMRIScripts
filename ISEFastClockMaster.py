@@ -77,8 +77,13 @@ class ClockListener(java.beans.PropertyChangeListener):
       crc = self.mrbusCRC16Calculate(txBuffer)
       txBuffer[3] = java.lang.Byte(0xFF & crc).byteValue()
       txBuffer[4] = java.lang.Byte(0xFF & (crc >> 8)).byteValue()
-      self.xbee.setReceiveTimeout(2000)
-      self.xbee.sendBroadcastData(txBuffer)
+      try:
+         self.xbee.sendBroadcastData(txBuffer)
+         # print 'status message sent'
+      except:
+         print 'failed to send time update'
+         pass
+      return
    
    #CRC Calculations from esu-bridge
    def mrbusCRC16Calculate(self,data):
