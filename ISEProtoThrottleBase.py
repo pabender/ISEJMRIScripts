@@ -204,6 +204,11 @@ class ProtoThrottleListener(com.digi.xbee.api.listeners.IDataReceiveListener):
          print "packet invalid ",pkt
          return
       
+      if pkt.dest != self.mrbus_dev_addr:
+         print "packet not for us",pkt
+         return
+
+      
       print "valid packet"
      
       throttle = self.throttles.get(pkt.src)
@@ -217,11 +222,12 @@ class ProtoThrottleListener(com.digi.xbee.api.listeners.IDataReceiveListener):
 # requests.
 class ProtoThrottleHeartBeat(jmri.jmrit.automat.AbstractAutomaton):
 
-   def __init__(self,xbee,mrbus_dev_addr) :
+   def __init__(self,tc,xbee,mrbus_dev_addr) :
       self.mrbus_dev_addr = mrbus_dev_addr
       self.Xbee = xbee
+      self.tc = tc 
       self.lastStatusTime = datetime.now()
-      self.statusInterval = 1
+      self.statusInterval = 5
    
    def init(self) :
       return
@@ -234,7 +240,7 @@ class ProtoThrottleHeartBeat(jmri.jmrit.automat.AbstractAutomaton):
    
    def sendStatus(self):
       txBuffer = []
-      txBuffer.append(java.lang.Byte(0xff).byteValue()) #destination
+      txBuffer.append(java.lang.Byte(0xFF).byteValue()) #destination
       txBuffer.append(java.lang.Byte(0xFF & self.mrbus_dev_addr).byteValue()) #source
       txBuffer.append(java.lang.Byte(0xFF & 16).byteValue()) #length
       txBuffer.append(java.lang.Byte(0).byteValue()) #checksum L
@@ -254,10 +260,11 @@ class ProtoThrottleHeartBeat(jmri.jmrit.automat.AbstractAutomaton):
       txBuffer[3] = java.lang.Byte(0xFF & crc).byteValue()
       txBuffer[4] = java.lang.Byte(0xFF & (crc >> 8)).byteValue()
       try:
-         self.Xbee.sendBroadcastData(txBuffer)
-         # print 'status message sent'
-      except:
+         self.tc.sendXBeeMessage(jmri.jmrix.ieee802154.xbee.XBeeBroadcastMessage.getTX16BroadcastMessage(txBuffer),None)
+         print 'status message sent'
+      except BaseException, ex:
          print 'failed to send status'
+         print ex 
       return
    
    def mrbusCRC16Calculate(self,data):
@@ -317,7 +324,7 @@ class ProtoThrottleDriver:
       print "Listener Started"
       
       #Start the heartbeat
-      protoThrottleHeartbeat = ProtoThrottleHeartBeat(self.Xbee,self.mrbus_dev_addr)
+      protoThrottleHeartbeat = ProtoThrottleHeartBeat(self.tc,self.Xbee,self.mrbus_dev_addr)
       protoThrottleHeartbeat.start()
       
       print "Heartbeat Started"
